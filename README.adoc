@@ -1,0 +1,57 @@
+
+Javascript Data Validator
+========================
+
+Basic validation
+---------------
+
+----
+validate(5, "number")
+validate([1, 2, 3], "array")
+validate({a: "a"}, "object")
+----
+
+.Composite validation
+
+.Objects
+----
+validate({a: "a"}, "isNonEmptyObject")
+validate({}, "isNonEmptyObject")		// false
+validate(null, "isNonEmptyObject")		// false, avoid typeof null === "object" errors
+----
+
+.Arrays
+----
+validate([5, "abc"], "isNonEmptyArray")
+----
+
+.Strings
+----
+validate("test", "isNonEmptyString")	// false
+validate("", "isNonEmptyString")		// false
+validate("  ", "isNonEmptyString")		// false, whitespace is trimmed
+----
+
+.Numbers
+----
+validate(500, "validNumber")
+validate(0xFF, "validNumber")			// hexadecimals and octal are ok
+validate(90e2, "validNumber")			// scientific notation is ok
+validate(Infinity, "validNumber")		// false, Infinity and -Infinity are not valid
+validate(NaN, "validNumber")			// false
+validate(null, "validNumber")			// false, avoid isFinite(null) === true
+
+// Numeric validates same as Number but allows string values
+validate("90e2", "validNumeric")
+validate("0xEC", "validNumeric")
+validate(null, "validNumeric")			// false
+
+validate(92, "validInteger")
+validate(NaN, "validInteger")			// false
+validate(Infinity, "validInteger")		// false
+----
+
+
+License
+------
+http://opensource.org/licenses/MIT[MIT License]
