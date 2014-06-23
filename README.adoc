@@ -5,28 +5,31 @@ Validate Javascript data types and object properties
 
 Motivation
 ----------
-I wanted to build a lightweight extensible module capable of deep JSON validation for AJAX responses, internal data models, and function arguments. It can also be used for form validation.
+I wanted to build a lightweight extensible module capable of strict and composable validation for JSON responses, internal data models, and function arguments. It can also be used for form validation.
 
 Setup
 -----
 Adding the `validator.js` file will add the `validate()` function to the global namespace. To add the function onto a custom object, change the `this` keyword on the last line of the file to the name of your custom object.
 
-Basic validation
----------------
+Basic/composite validation
+--------------------------
 
 ----
-validate(5, "number")
-validate([1, 2, 3], "array")
-validate({a: "a"}, "object")
+validate(5, "number, !null")           // true, same as typeof val === "number" && val !== null
+validate([1, 2, 3], "array")           // true, same as Array.isArray(val)
+validate({a: "a"}, "object, !array")   // true, same as typeof val === "object" && !Array.isArray(val)
+validate({a: "a"}, "strictObject")     // true, equivalent to "object, !array, !null"
+validate([3, "a"], "strictObject")     // false
+validate(null, "strictObject")         // false
 ----
 
 Negation of validation
 ----------------------
 
 ----
-validate([1, 2, 3], "array, !undefined")
-validate({a: "a"}, "object, !array, !null")
-validate(5, "!number")				// returns false
+validate([1, 2, 3], "array, !undefined")      // true
+validate({a: "a"}, "object, !array, !null")   // true
+validate(5, "!number")                        // returns false
 ----
 
 Throwing errors on validation failures
@@ -46,79 +49,79 @@ Property validation
 Validate properties like `length`, `minLength`, `maxLength`, `max`, and `min`. Prepend "strict" to any max/min validator to get strictly less than or greater than functionality.
 
 ----
-validate("hello", "string", {minLength: 2});
-validate("5", "string", {max: 12});
-validate(16, "number", {min: 12});
-validate(12, "number", {strictMin: 12});	// false
-validate("a", "string", {maxLength: 2});	// false
-validate("hello world", "string", {length: 2});	// false
+validate("hello", "string", {minLength: 2})      // true
+validate("5", "string", {max: 12})               // true
+validate(16, "number", {min: 12})                // true
+validate(12, "number", {strictMin: 12});         // false
+validate("a", "string", {maxLength: 2});         // false
+validate("hello world", "string", {length: 2});	 // false
 ----
 
 
-Composite validation
---------------------
+Useful composite aliases
+------------------------
 
 .Objects
-Goal: avoid errors from things like `typeof null === "object"` returning true
+Goal: avoid errors from Arrays and nulls being typeof Objects
 ----
-validate({a: "a"}, "isNonEmptyObject")
-validate({}, "isNonEmptyObject")		// false
-validate(null, "isNonEmptyObject")		// false, avoid typeof null === "object"
-validate([a, 2], "isNonEmptyObject")	// false, avoid typeof [] === "object"
+validate({a: "a"}, "validObject")  // true
+validate({}, "validObject")        // false, we don't wan't empty objects
+validate(null, "validObject")      // false, avoid typeof null === "object"
+validate([a, 2], "validObject")    // false, avoid typeof [] === "object"
 ----
 
 .Arrays
 ----
-validate([5, "abc"], "isNonEmptyArray")
-validate([], "isNonEmptyArray")			// false
+validate([5, "abc"], "validArray")  // true
+validate([], "validArray")          // false, no empty arrays
 ----
 
 .Strings
 ----
-validate("test", "isNonEmptyString")
-validate("", "isNonEmptyString")	// false
-validate("  ", "isNonEmptyString")	// false, whitespace is trimmed
+validate("test", "validString")   // true
+validate("", "validString")       // false, no empty strings
+validate("  ", "validString")     // false, whitespace is trimmed
 ----
 
 .Numbers
-Goal: avoid `+/-Infinity`, `NaN`; avoid `null`, Booleans, and Arrays being coerced to a Number
+Goal: avoid `+/-Infinity`, `NaN`; avoid nulls, Booleans, and Arrays being coerced to a Number
 
 Use `validNumeric`/`validIntegerish` if numbers as strings are ok
 
 Otherwise, use `validNumber` and `validInteger`
 ----
-validate(500, "validNumber")
-validate(10, "validNumber", {min: 2, max: 100})
-validate(0xFF, "validNumber")		// true, hexadecimals and octal are ok
-validate(90e2, "validNumber")		// true, scientific notation is ok
-validate(Infinity, "validNumber")	// false, Infinity and -Infinity are not valid
-validate(NaN, "validNumber")		// false, avoid typeof NaN === "number"
+validate(500, "validNumber")                     // true
+validate(10, "validNumber", {min: 2, max: 100})  // true
+validate(0xFF, "validNumber")                    // true, hexadecimals and octal are ok
+validate(90e2, "validNumber")                    // true, scientific notation is ok
+validate(Infinity, "validNumber")                // false, Infinity and -Infinity are not valid
+validate(NaN, "validNumber")                     // false, avoid typeof NaN === "number"
 
 // Numeric validates same as Number but allows string values
-validate("90e2", "validNumeric")
-validate("0xEC", "validNumeric")
-validate(null, "validNumeric")		// false, avoid isFinite(null) === true
-validate(true, "validNumeric")		// false, avoid isFinite(true) === true
-validate([1], "validNumeric")		// false, avoid isFinite([]) === true
+validate("90e2", "validNumeric")    // true
+validate("0xEC", "validNumeric")    // true
+validate(null, "validNumeric")      // false, avoid isFinite(null) === true
+validate(true, "validNumeric")      // false, avoid isFinite(true) === true
+validate([1], "validNumeric")       // false, avoid isFinite([]) === true
 
-validate(92, "validInteger")
-validate(NaN, "validInteger")		// false
-validate(5.2, "validInteger")		// false
-validate(Infinity, "validInteger")	// false
+validate(92, "validInteger")        // true
+validate(NaN, "validInteger")       // false
+validate(5.2, "validInteger")       // false
+validate(Infinity, "validInteger")  // false
 ----
 
-Note: `validate(x, "validNumber")` is a composite alias for `validate(x, "notNull, finite, number")`
+Note: `validate(x, "validNumber")` is a composite alias for `validate(x, "!null, !boolean, !array, finite, number")`
 
-Similarly, `validate(x, "validNumeric")` is a composite alias for `validate(x, "notNull, finite")`
+Similarly, `validate(x, "validNumeric")` is a composite alias for `validate(x, "!null, !boolean, !array, finite")`
 
 JSON validation
 ---------------
 Iterate through array or object and validate either each element or a property of each element
 
 ----
-validate({a: 9, b: 3}, "eachElement", {rules: "validNumber"});
-validate({a: NaN, b: 3}, "eachElement", {rules: "validNumber"});	// false
-validate([{b: 9}, {b: 2.2}],  "eachElementProperty", {propertyName: "b", rules: "validNumber"});
+validate({a: 9, b: 3}, "eachElement", {rules: "validNumber"})     // true
+validate({a: NaN, b: 3}, "eachElement", {rules: "validNumber"})   // false
+validate([{b: 9}, {b: 2.2}],  "eachElementProperty", {propertyName: "b", rules: "validNumber"}); // true
 validate([{b: 9}, {b: 2.2}],  "eachElementProperty", {propertyName: "b", rules: "validInteger"}); // false, 2.2 is not an integer
 ----
 
