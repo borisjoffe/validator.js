@@ -257,10 +257,10 @@
 		validInteger: ["validNumber", "integer"],			// same as above but cannot be a string
 
 		// Object-ish
-		validObject: ["object", "!null", "!array"],
+		strictObject: ["object", "!null", "!array"],
 		isNonEmptyString: ["string", "positiveLength", "hasNonWhitespace"],
 		isNonEmptyArray: ["array", "positiveLength"],
-		isNonEmptyObject: ["validObject", "hasAProperty"],
+		isNonEmptyObject: ["strictObject", "hasAProperty"],
 
 	};
 
