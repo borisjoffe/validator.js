@@ -1,6 +1,15 @@
 
-Javascript Data Validator
-========================
+Validator.js
+============
+Validate Javascript data types and object properties
+
+Motivation
+----------
+I wanted to build a lightweight extensible module capable of deep JSON validation for AJAX responses, internal data models, and function arguments. It can also be used for form validation.
+
+Setup
+-----
+Adding the `validator.js` file will add the `validate()` function to the global namespace. To add the function onto a custom object, change the `this` keyword on the last line of the file to the name of your custom object.
 
 Basic validation
 ---------------
@@ -11,46 +20,155 @@ validate([1, 2, 3], "array")
 validate({a: "a"}, "object")
 ----
 
-.Composite validation
+Negation of validation
+----------------------
+
+----
+validate([1, 2, 3], "array, !undefined")
+validate({a: "a"}, "object, !array, !null")
+validate(5, "!number")				// returns false
+----
+
+Throwing errors on validation failures
+--------------------------------------
+If the 3rd argument, `throwErrorMessage`, is a string, it will throw an error on failed validation. You should use the string to describe the value you're validating to get clear error messages.
+
+`validate([5], "number", "number of requests")` will throw the following error:
+-----
+TypeError: Validation failed on rule "number".
+number of requests was: [5]
+options were: {}
+-----
+
+
+Property validation
+--------------------
+Validate properties like `length`, `minLength`, `maxLength`, `max`, and `min`. Prepend "strict" to any max/min validator to get strictly less than or greater than functionality.
+
+----
+validate("hello", "string", {minLength: 2});
+validate("5", "string", {max: 12});
+validate(16, "number", {min: 12});
+validate(12, "number", {strictMin: 12});	// false
+validate("a", "string", {maxLength: 2});	// false
+validate("hello world", "string", {length: 2});	// false
+----
+
+
+Composite validation
+--------------------
 
 .Objects
+Goal: avoid errors from things like `typeof null === "object"` returning true
 ----
 validate({a: "a"}, "isNonEmptyObject")
 validate({}, "isNonEmptyObject")		// false
-validate(null, "isNonEmptyObject")		// false, avoid typeof null === "object" errors
+validate(null, "isNonEmptyObject")		// false, avoid typeof null === "object"
+validate([a, 2], "isNonEmptyObject")	// false, avoid typeof [] === "object"
 ----
 
 .Arrays
 ----
 validate([5, "abc"], "isNonEmptyArray")
+validate([], "isNonEmptyArray")			// false
 ----
 
 .Strings
 ----
-validate("test", "isNonEmptyString")	// false
-validate("", "isNonEmptyString")		// false
-validate("  ", "isNonEmptyString")		// false, whitespace is trimmed
+validate("test", "isNonEmptyString")
+validate("", "isNonEmptyString")	// false
+validate("  ", "isNonEmptyString")	// false, whitespace is trimmed
 ----
 
 .Numbers
+Goal: avoid `+/-Infinity`, `NaN`; avoid `null`, Booleans, and Arrays being coerced to a Number
+
+Use `validNumeric`/`validIntegerish` if numbers as strings are ok
+
+Otherwise, use `validNumber` and `validInteger`
 ----
 validate(500, "validNumber")
-validate(0xFF, "validNumber")			// hexadecimals and octal are ok
-validate(90e2, "validNumber")			// scientific notation is ok
-validate(Infinity, "validNumber")		// false, Infinity and -Infinity are not valid
-validate(NaN, "validNumber")			// false
-validate(null, "validNumber")			// false, avoid isFinite(null) === true
+validate(10, "validNumber", {min: 2, max: 100})
+validate(0xFF, "validNumber")		// true, hexadecimals and octal are ok
+validate(90e2, "validNumber")		// true, scientific notation is ok
+validate(Infinity, "validNumber")	// false, Infinity and -Infinity are not valid
+validate(NaN, "validNumber")		// false, avoid typeof NaN === "number"
 
 // Numeric validates same as Number but allows string values
 validate("90e2", "validNumeric")
 validate("0xEC", "validNumeric")
-validate(null, "validNumeric")			// false
+validate(null, "validNumeric")		// false, avoid isFinite(null) === true
+validate(true, "validNumeric")		// false, avoid isFinite(true) === true
+validate([1], "validNumeric")		// false, avoid isFinite([]) === true
 
 validate(92, "validInteger")
-validate(NaN, "validInteger")			// false
-validate(Infinity, "validInteger")		// false
+validate(NaN, "validInteger")		// false
+validate(5.2, "validInteger")		// false
+validate(Infinity, "validInteger")	// false
 ----
 
+Note: `validate(x, "validNumber")` is a composite alias for `validate(x, "notNull, finite, number")`
+
+Similarly, `validate(x, "validNumeric")` is a composite alias for `validate(x, "notNull, finite")`
+
+JSON validation
+---------------
+Iterate through array or object and validate either each element or a property of each element
+
+----
+validate({a: 9, b: 3}, "eachElement", {rules: "validNumber"});
+validate({a: NaN, b: 3}, "eachElement", {rules: "validNumber"});	// false
+validate([{b: 9}, {b: 2.2}],  "eachElementProperty", {propertyName: "b", rules: "validNumber"});
+validate([{b: 9}, {b: 2.2}],  "eachElementProperty", {propertyName: "b", rules: "validInteger"}); // false, 2.2 is not an integer
+----
+
+Design/Extensibility
+--------------------
+Base validators are functions defined on the `validate.validators` object. To add a custom validator, use:
+----
+validate.validators.containsHello = function (x) {
+	return x.contains("hello");
+};
+
+validate.validators.containsWorld = function (x) {
+	return x.contains("world");
+};
+----
+
+Composite validators are arrays or comma delimited strings defined on `validate.compositeValidators`. To add a custom one, use:
+----
+validate.compositeValidators.containsHelloWorld = ["containsHello", "containsWorld"];
+----
+
+Aliases are single element arrays of a string or strings with no commas defined on `validate.aliases` e.g. `validate.aliases.isHelloWorld = "containsHelloWorld";`
+
+Related works
+-------------
+- Data Validation Example (page 156) in *Javascript Patterns* by Stoyan Stefanov - has one layer deep object validation and a similar overall design but no composite validators. 
+	** It is more geared for form validation since each validator has an `instructions` property that can be displayed to the user. 
+	** One could define a property on a base validator function or a composite validator array or string e.g. `validate.validators.containsHelloWorld.instructions = "Must contain hello world"` and then slightly change the `validate` function to achieve the same functionality.
+
+- http://www.cerny-online.com/cerny.js/[CERNY.js] - specifically http://www.cerny-online.com/cerny.js/documentation/guides/schema[Schema], http://www.cerny-online.com/cerny.js/documentation/guides/contracts[Contracts], and http://www.cerny-online.com/cerny.js/documentation/guides/type-checking[Type checking]. Has more advanced capabilities on some fronts but is also part of a larger library, has less base validators, and does not support composite validators.
+
+- https://github.com/scottrabin/is-js/[is.js] - has fewer validators, no composite validators, and no deep validation
+
+- https://github.com/rowanmanning/upcast/[upcast.js] - has type casting support but has fewer validators, no composite validators, and no deep validation.
+
+Shortcomings
+------------
+- Can only go 2 levels deep into objects/array. Workaround: iterate over the object/array yourself and call validate on the properties.
+- Cannot combine property validation with JSON validation e.g. cannot validate `minLength` on `eachElement`. Workaround: iterate over each element and call validate on it, or add your own validator and use it as a rule for `eachElement`.
+
+Tests
+-----
+Currently, there are ~17 Jasmine unit tests written. Run `grunt test` to execute them.
+
+Most base and composite validators will have at least one test for them in the future. More extensive tests will be written for throwing errors, property validation (like `{min: 2}`), and JSON validation (like `eachElement`, `eachElementProperty`).
+
+Dependencies
+------------
+- ECMAScript 5 (Node and browser environments supported)
+- Jasmine (for tests)
 
 License
 ------

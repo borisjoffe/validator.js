@@ -1,0 +1,33 @@
+{
+  "name": "jsvalidator",
+  "version": "1.0.0",
+  "description": "Validate Javascript data types and object properties",
+  "main": "validator.js",
+  "dependencies": {
+    "grunt": "^0.4.5"
+  },
+  "devDependencies": {
+    "grunt-contrib-jasmine": "^0.6.5"
+  },
+  "scripts": {
+    "test": "grunt test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/borisjoffe/validator.js.git"
+  },
+  "keywords": [
+    "validator",
+    "javascript",
+    "data",
+    "datatype",
+    "type",
+    "types"
+  ],
+  "author": "Boris Joffe",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/borisjoffe/validator.js/issues"
+  },
+  "homepage": "https://github.com/borisjoffe/validator.js"
+}

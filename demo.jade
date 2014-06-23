@@ -1,0 +1,48 @@
+doctype html
+html
+	head
+		script(src='validator.js')
+
+	body
+		.container(style='padding-left: 40px;')
+			h1 
+				a(href='https://github.com/borisjoffe/validator.js' title='validator.js source code') Validator.js
+
+			p.lead Type in your validator
+
+			//
+				label
+					| validate (
+				input(id="in" style='width: 500px;') '[{name: "Bob", age:40}, {name: "Joe", age:10}], "eachElementProperty", "data", {propertyName: "age", rules: "validNumber"}')
+				| )
+
+			textarea(id="input" style='width: 500px; height: 100px' cols='10')
+				|validate(
+				| [{name: "Bob", age:40}, {name: "Joe", age:10}], "eachElementProperty", "data", {propertyName: "age", rules: "validNumber"}
+				|)
+
+			br
+			br
+			button(onclick='validateInput()') Validate
+
+			br
+			br
+			pre.output(style='border: 1px solid green; width: 500px; padding: 10px;')
+				span(id="out") Validation output
+					
+
+			script.
+				'use strict';
+
+				function validateInput() {
+					var output;
+					try {
+						//output = eval("validate(" + document.getElementById("in").value + ")");
+						output = eval(document.getElementById("input").value);
+						console.log(output);
+					} catch (e) {
+						output = e;
+						console.error(e);
+					}
+					document.getElementById("out").innerHTML = output;
+				}
